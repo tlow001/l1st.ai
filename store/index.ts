@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { AppState, AppActions, Product, UploadedImage, ShoppingTrip } from '@/types'
-import { mockLogin, mockRegister } from '@/lib/mockAuth'
+import { signInWithEmail, registerWithEmail, signInWithGoogle, signOut as firebaseSignOut } from '@/lib/firebaseAuth'
 
 type Store = AppState & AppActions
 
@@ -108,25 +108,55 @@ export const useStore = create<Store>()(
 
       // Auth actions
       login: async (email, password) => {
-        const user = await mockLogin(email, password)
-        if (user) {
-          set({ user, isAuthenticated: true })
-          return true
+        try {
+          const user = await signInWithEmail(email, password)
+          if (user) {
+            set({ user, isAuthenticated: true })
+            return true
+          }
+          return false
+        } catch (error) {
+          console.error('Login error:', error)
+          throw error
         }
-        return false
+      },
+
+      loginWithGoogle: async () => {
+        try {
+          const user = await signInWithGoogle()
+          if (user) {
+            set({ user, isAuthenticated: true })
+            return true
+          }
+          return false
+        } catch (error) {
+          console.error('Google login error:', error)
+          throw error
+        }
       },
 
       register: async (email, password, name) => {
-        const user = await mockRegister(email, password, name)
-        if (user) {
-          set({ user, isAuthenticated: true })
-          return true
+        try {
+          const user = await registerWithEmail(email, password, name)
+          if (user) {
+            set({ user, isAuthenticated: true })
+            return true
+          }
+          return false
+        } catch (error) {
+          console.error('Register error:', error)
+          throw error
         }
-        return false
       },
 
-      logout: () => {
-        set({ user: null, isAuthenticated: false })
+      logout: async () => {
+        try {
+          await firebaseSignOut()
+          set({ user: null, isAuthenticated: false })
+        } catch (error) {
+          console.error('Logout error:', error)
+          throw error
+        }
       },
 
       checkAuth: () => {

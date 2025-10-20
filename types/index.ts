@@ -73,7 +73,8 @@ export interface AppActions {
   setShopMode: (isShopMode: boolean) => void
   clearCheckedProducts: () => void
   login: (email: string, password: string) => Promise<boolean>
+  loginWithGoogle: () => Promise<boolean>
   register: (email: string, password: string, name: string) => Promise<boolean>
-  logout: () => void
+  logout: () => Promise<void>
   checkAuth: () => boolean
 }
