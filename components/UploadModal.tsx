@@ -4,10 +4,11 @@ import { useState, useEffect } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { Modal } from './Modal'
 import { Button } from './Button'
-import { UploadedImage } from '@/types'
+import { UploadedImage, ImageType } from '@/types'
 import { useStore } from '@/store'
-import { mockAIExtraction } from '@/lib/mockData'
-import { Upload, X, Sparkles } from 'lucide-react'
+import { useTranslation } from '@/lib/i18n'
+import { extractProductsFromImage } from '@/lib/openaiExtraction'
+import { Upload, X, Sparkles, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
 
 interface UploadModalProps {
   isOpen: boolean
@@ -15,9 +16,16 @@ interface UploadModalProps {
   onSuccess?: () => void
 }
 
+interface ImageWithStatus extends UploadedImage {
+  status: 'pending' | 'processing' | 'success' | 'error'
+  message?: string
+  productCount?: number
+}
+
 export function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
-  const [images, setImages] = useState<UploadedImage[]>([])
+  const [images, setImages] = useState<ImageWithStatus[]>([])
   const [processing, setProcessing] = useState(false)
+  const { t } = useTranslation()
 
   const { addImage, addProduct, useCredits, credits } = useStore()
 
@@ -26,11 +34,12 @@ export function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
       'image/*': ['.png', '.jpg', '.jpeg', '.webp'],
     },
     onDrop: (acceptedFiles) => {
-      const newImages: UploadedImage[] = acceptedFiles.map((file) => ({
+      const newImages: ImageWithStatus[] = acceptedFiles.map((file) => ({
         id: Math.random().toString(36).substring(2, 11),
         file,
         preview: URL.createObjectURL(file),
         processed: false,
+        status: 'pending',
       }))
       setImages((prev) => [...prev, ...newImages])
     },
@@ -62,37 +71,99 @@ export function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
   }
 
   const handleProcess = async () => {
-    const cost = images.length * 5
-
-    if (credits < cost) {
-      alert(`Insufficient credits. You need ${cost} credits but only have ${credits}.`)
-      return
-    }
-
-    if (!useCredits(cost)) {
-      return
-    }
-
     setProcessing(true)
 
+    let successCount = 0
+    let totalProductsAdded = 0
+
     try {
-      // Process each image with AI
-      for (const img of images) {
-        const products = await mockAIExtraction()
-        products.forEach((product) => {
-          addProduct(product)
-        })
-        addImage({ ...img, processed: true })
+      // Process each image individually
+      for (let i = 0; i < images.length; i++) {
+        const img = images[i]
+        
+        // Update status to processing
+        setImages((prev) =>
+          prev.map((item, idx) =>
+            idx === i ? { ...item, status: 'processing' } : item
+          )
+        )
+
+        try {
+          // Extract products using OpenAI (AI will auto-detect image type)
+          const result = await extractProductsFromImage(img.file)
+
+          if (result.valid && result.products.length > 0) {
+            // Add products to store
+            result.products.forEach((product) => {
+              addProduct(product)
+            })
+
+            // Update status to success
+            setImages((prev) =>
+              prev.map((item, idx) =>
+                idx === i
+                  ? {
+                      ...item,
+                      status: 'success',
+                      message: result.message,
+                      productCount: result.products.length,
+                      processed: true,
+                    }
+                  : item
+              )
+            )
+
+            // Add image to store (products already have correct source from AI)
+            addImage({ ...img, processed: true })
+            
+            successCount++
+            totalProductsAdded += result.products.length
+          } else {
+            // Invalid or no products found
+            setImages((prev) =>
+              prev.map((item, idx) =>
+                idx === i
+                  ? {
+                      ...item,
+                      status: 'error',
+                      message: result.message || 'No products detected in this image',
+                    }
+                  : item
+              )
+            )
+          }
+        } catch (error: any) {
+          // Error processing this image
+          setImages((prev) =>
+            prev.map((item, idx) =>
+              idx === i
+                ? {
+                    ...item,
+                    status: 'error',
+                    message: error.message || 'Failed to process image',
+                  }
+                : item
+            )
+          )
+        }
       }
 
-      // Cleanup
-      images.forEach((img) => URL.revokeObjectURL(img.preview))
+      // Charge credits only for successfully processed images
+      if (successCount > 0) {
+        const cost = successCount * 5
+        useCredits(cost)
+      }
 
-      // Close modal and notify success
-      onSuccess?.()
-      onClose()
+      // Show summary
+      if (successCount > 0) {
+        setTimeout(() => {
+          onSuccess?.()
+          onClose()
+        }, 2000)
+      }
     } catch (error) {
-      alert('An error occurred during processing. Please try again.')
+      console.error('Error processing images:', error)
+    } finally {
       setProcessing(false)
     }
   }
@@ -105,16 +176,14 @@ export function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} title="Upload Images">
+    <Modal isOpen={isOpen} onClose={handleClose} title={t('uploadImagesTitle')}>
       <div className="space-y-6">
         {/* AI Info */}
         <div className="flex items-start gap-3 p-3 bg-gray-100 rounded-lg border border-gray-200">
           <Sparkles className="w-5 h-5 text-gray-700 flex-shrink-0 mt-0.5" />
           <div>
             <p className="text-sm text-gray-600">
-              Upload images of your <strong>fridge</strong>, <strong>receipts</strong>,{' '}
-              <strong>dishes</strong>, <strong>recipes</strong>, or <strong>products</strong>.
-              Our AI will automatically detect and extract items.
+              {t('uploadAnyImage')} <strong>{t('automaticallyDetect')}</strong> {t('imageTypeDescription')}
             </p>
           </div>
         </div>
@@ -131,37 +200,80 @@ export function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
           <input {...getInputProps()} />
           <Upload className="w-10 h-10 mx-auto mb-3 text-gray-400" />
           <p className="text-sm text-gray-600 mb-1">
-            Drag & drop images here, or click to select
+            {t('dragDropImages')}
           </p>
           <p className="text-xs text-gray-500">
-            Supported formats: PNG, JPG, JPEG, WebP
+            {t('supportedFormats')}
           </p>
         </div>
 
-        {/* Preview Grid */}
+        {/* Preview Grid with Status */}
         {images.length > 0 && (
           <div>
             <h3 className="text-sm font-medium text-gray-900 mb-3">
-              Preview ({images.length} {images.length === 1 ? 'image' : 'images'})
+              {images.length} {images.length === 1 ? t('image') : t('images')}
             </h3>
-            <div className="grid grid-cols-3 gap-3 max-h-64 overflow-y-auto">
+            <div className="space-y-3 max-h-96 overflow-y-auto">
               {images.map((image) => (
                 <div
                   key={image.id}
-                  className="relative group aspect-square rounded overflow-hidden bg-gray-100 border border-gray-200"
+                  className="flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-lg"
                 >
-                  <img
-                    src={image.preview}
-                    alt="Upload preview"
-                    className="w-full h-full object-cover"
-                  />
-                  <button
-                    onClick={() => removeImage(image.id)}
-                    className="absolute top-1 right-1 w-6 h-6 flex items-center justify-center bg-white border border-gray-200 rounded opacity-0 group-hover:opacity-100 transition-opacity hover:bg-gray-100"
-                    aria-label="Remove image"
-                  >
-                    <X className="w-3 h-3 text-gray-600" />
-                  </button>
+                  {/* Image Preview */}
+                  <div className="relative w-16 h-16 flex-shrink-0 rounded overflow-hidden bg-gray-100">
+                    <img
+                      src={image.preview}
+                      alt="Upload preview"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+
+                  {/* Status and Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      {image.status === 'pending' && (
+                        <div className="w-5 h-5 rounded-full border-2 border-gray-300" />
+                      )}
+                      {image.status === 'processing' && (
+                        <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />
+                      )}
+                      {image.status === 'success' && (
+                        <CheckCircle2 className="w-5 h-5 text-green-500" />
+                      )}
+                      {image.status === 'error' && (
+                        <AlertCircle className="w-5 h-5 text-red-500" />
+                      )}
+                      <span className="text-sm font-medium text-gray-900 truncate">
+                        {image.file.name}
+                      </span>
+                    </div>
+                    
+                    {image.status === 'pending' && (
+                      <p className="text-xs text-gray-500">{t('readyToProcess')}</p>
+                    )}
+                    {image.status === 'processing' && (
+                      <p className="text-xs text-blue-600">{t('analyzingImage')}</p>
+                    )}
+                    {image.status === 'success' && image.productCount && (
+                      <p className="text-xs text-green-600">
+                        ✓ {t('addedProducts')} {image.productCount} {image.productCount === 1 ? t('product') : t('products')}
+                      </p>
+                    )}
+                    {image.status === 'error' && image.message && (
+                      <p className="text-xs text-red-600">{image.message}</p>
+                    )}
+                  </div>
+
+                  {/* Remove Button */}
+                  {!processing && (
+                    <button
+                      onClick={() => removeImage(image.id)}
+                      className="flex-shrink-0 w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors"
+                      aria-label="Remove image"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
@@ -171,24 +283,27 @@ export function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
         {/* Actions */}
         <div className="flex items-center justify-between pt-4 border-t border-gray-200">
           <div className="text-sm text-gray-600">
-            {images.length > 0 && (
+            {images.length > 0 && !processing && (
               <>
-                Cost:{' '}
+                {t('estimatedCost')}:{' '}
                 <span className="font-semibold text-gray-900">{images.length * 5}</span>{' '}
-                credits
+                {t('credits')}
               </>
+            )}
+            {processing && (
+              <span className="text-blue-600">{t('processingImages')}</span>
             )}
           </div>
           <div className="flex gap-3">
-            <Button type="button" variant="secondary" onClick={handleClose}>
-              Cancel
+            <Button type="button" variant="secondary" onClick={handleClose} disabled={processing}>
+              {processing ? t('closeWhenDone') : t('cancel')}
             </Button>
             <Button
               onClick={handleProcess}
               loading={processing}
-              disabled={images.length === 0 || credits < images.length * 5}
+              disabled={images.length === 0 || processing}
             >
-              Process with AI
+              {t('processWithAI')}
             </Button>
           </div>
         </div>

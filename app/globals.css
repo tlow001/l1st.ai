@@ -1,6 +1,96 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer utilities {
+  /* Stagger animation for product cards */
+  @keyframes fadeSlideUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .animate-fade-slide-up {
+    animation: fadeSlideUp 0.4s ease-out forwards;
+  }
+}
+
+@layer utilities {
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* Custom scrollbar for desktop horizontal scrolling */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: rgba(156, 163, 175, 0.5);
+    border-radius: 3px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(107, 114, 128, 0.7);
+  }
+
+  /* Hide scrollbar on mobile, show on desktop */
+  @media (max-width: 768px) {
+    .scrollbar-desktop-only::-webkit-scrollbar {
+      display: none;
+    }
+    
+    .scrollbar-desktop-only {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  }
+
+  @media (min-width: 769px) {
+    .scrollbar-desktop-only {
+      scrollbar-width: thin;
+      scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+    }
+
+    .scrollbar-desktop-only::-webkit-scrollbar {
+      height: 6px;
+    }
+
+    .scrollbar-desktop-only::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .scrollbar-desktop-only::-webkit-scrollbar-thumb {
+      background-color: rgba(156, 163, 175, 0.5);
+      border-radius: 3px;
+    }
+
+    .scrollbar-desktop-only::-webkit-scrollbar-thumb:hover {
+      background-color: rgba(107, 114, 128, 0.7);
+    }
+  }
+}
 
 @layer base {
   * {
@@ -8,8 +98,45 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background-secondary text-gray-900 font-sans;
     font-feature-settings: "rlig" 1, "calt" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Typography Base Styles */
+  h1 {
+    @apply text-h1;
+  }
+
+  h2 {
+    @apply text-h2;
+  }
+
+  h3 {
+    @apply text-h3;
+  }
+
+  h4 {
+    @apply text-h4;
+  }
+
+  p {
+    @apply text-body;
+  }
+
+  a {
+    @apply text-link text-primary-purple hover:opacity-80 transition-opacity duration-standard;
+  }
+
+  /* Focus States for Accessibility */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-primary-purple ring-offset-2;
+  }
+
+  /* Button Reset */
+  button {
+    @apply font-medium;
   }
 }
 

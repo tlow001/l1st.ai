@@ -4,9 +4,10 @@ import type { Product, ImageType } from '@/types'
 const fridgeProducts: Omit<Product, 'id' | 'inShoppingList' | 'checkedOff'>[] = [
   {
     name: 'Whole Milk',
-    category: 'Dairy',
+    category: 'Dairy & Eggs',
     quantity: 1,
     unit: 'l',
+    source: 'fridge',
     details: {
       price: '$3.99',
       nutritionalInfo: '150 cal per cup, 8g protein',
@@ -15,9 +16,10 @@ const fridgeProducts: Omit<Product, 'id' | 'inShoppingList' | 'checkedOff'>[] = 
   },
   {
     name: 'Cheddar Cheese',
-    category: 'Dairy',
+    category: 'Dairy & Eggs',
     quantity: 8,
     unit: 'oz',
+    source: 'fridge',
     details: {
       price: '$5.49',
       nutritionalInfo: '110 cal per oz, 7g protein',
@@ -25,9 +27,10 @@ const fridgeProducts: Omit<Product, 'id' | 'inShoppingList' | 'checkedOff'>[] = 
   },
   {
     name: 'Large Eggs',
-    category: 'Dairy',
+    category: 'Dairy & Eggs',
     quantity: 1,
     unit: 'dozen',
+    source: 'fridge',
     details: {
       price: '$4.29',
       nutritionalInfo: '70 cal per egg, 6g protein',
@@ -35,9 +38,10 @@ const fridgeProducts: Omit<Product, 'id' | 'inShoppingList' | 'checkedOff'>[] = 
   },
   {
     name: 'Butter',
-    category: 'Dairy',
+    category: 'Dairy & Eggs',
     quantity: 1,
     unit: 'lb',
+    source: 'fridge',
     details: {
       price: '$4.99',
     },
@@ -47,18 +51,20 @@ const fridgeProducts: Omit<Product, 'id' | 'inShoppingList' | 'checkedOff'>[] = 
 const receiptProducts: Omit<Product, 'id' | 'inShoppingList' | 'checkedOff'>[] = [
   {
     name: 'Sourdough Bread',
-    category: 'Bakery',
+    category: 'Bakery & Bread',
     quantity: 1,
     unit: 'unit',
+    source: 'shopping_list',
     details: {
       price: '$5.99',
     },
   },
   {
     name: 'Chicken Breast',
-    category: 'Meat',
+    category: 'Meat & Seafood',
     quantity: 2,
     unit: 'lb',
+    source: 'shopping_list',
     details: {
       price: '$8.98',
       nutritionalInfo: '165 cal per 3.5oz, 31g protein',
@@ -66,9 +72,10 @@ const receiptProducts: Omit<Product, 'id' | 'inShoppingList' | 'checkedOff'>[] =
   },
   {
     name: 'Roma Tomatoes',
-    category: 'Produce',
+    category: 'Fresh Produce',
     quantity: 1.5,
     unit: 'lb',
+    source: 'shopping_list',
     details: {
       price: '$2.99',
       nutritionalInfo: '18 cal per 100g',
@@ -76,9 +83,10 @@ const receiptProducts: Omit<Product, 'id' | 'inShoppingList' | 'checkedOff'>[] =
   },
   {
     name: 'Baby Spinach',
-    category: 'Produce',
+    category: 'Fresh Produce',
     quantity: 1,
     unit: 'package',
+    source: 'shopping_list',
     details: {
       price: '$3.49',
       nutritionalInfo: '7 cal per cup',
@@ -86,9 +94,10 @@ const receiptProducts: Omit<Product, 'id' | 'inShoppingList' | 'checkedOff'>[] =
   },
   {
     name: 'Bananas',
-    category: 'Produce',
+    category: 'Fresh Produce',
     quantity: 1,
     unit: 'bunch',
+    source: 'shopping_list',
     details: {
       price: '$1.99',
     },
@@ -98,9 +107,10 @@ const receiptProducts: Omit<Product, 'id' | 'inShoppingList' | 'checkedOff'>[] =
 const recipeProducts: Omit<Product, 'id' | 'inShoppingList' | 'checkedOff'>[] = [
   {
     name: 'Penne Pasta',
-    category: 'Pantry',
+    category: 'Pantry & Dry Goods',
     quantity: 1,
     unit: 'lb',
+    source: 'recipe',
     details: {
       price: '$2.49',
       nutritionalInfo: '200 cal per 2oz dry',
@@ -108,9 +118,10 @@ const recipeProducts: Omit<Product, 'id' | 'inShoppingList' | 'checkedOff'>[] = 
   },
   {
     name: 'Extra Virgin Olive Oil',
-    category: 'Pantry',
+    category: 'Pantry & Dry Goods',
     quantity: 500,
     unit: 'ml',
+    source: 'recipe',
     details: {
       price: '$12.99',
       nutritionalInfo: '120 cal per tbsp',
@@ -118,18 +129,20 @@ const recipeProducts: Omit<Product, 'id' | 'inShoppingList' | 'checkedOff'>[] = 
   },
   {
     name: 'Garlic',
-    category: 'Produce',
+    category: 'Fresh Produce',
     quantity: 1,
     unit: 'unit',
+    source: 'recipe',
     details: {
       price: '$0.79',
     },
   },
   {
     name: 'Parmesan Cheese',
-    category: 'Dairy',
+    category: 'Dairy & Eggs',
     quantity: 6,
     unit: 'oz',
+    source: 'recipe',
     details: {
       price: '$6.99',
       nutritionalInfo: '110 cal per oz, 10g protein',
@@ -137,9 +150,10 @@ const recipeProducts: Omit<Product, 'id' | 'inShoppingList' | 'checkedOff'>[] = 
   },
   {
     name: 'Fresh Basil',
-    category: 'Produce',
+    category: 'Fresh Produce',
     quantity: 1,
     unit: 'bunch',
+    source: 'recipe',
     details: {
       price: '$2.99',
     },

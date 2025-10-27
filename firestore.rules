@@ -1,0 +1,76 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to check if user is authenticated
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    // Helper function to check if user owns the resource
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    
+    // Helper function to check if user has access to another user's list
+    function hasSharedAccess(ownerId) {
+      return isSignedIn() && 
+        exists(/databases/$(database)/documents/sharedAccess/$(request.auth.uid)/lists/$(ownerId));
+    }
+    
+    // Users collection - basic profile info
+    match /users/{userId} {
+      // Allow users to read their own profile
+      allow read: if isOwner(userId);
+      // Allow users to create their own profile
+      allow create: if isOwner(userId);
+      // Allow users to update their own profile
+      allow update: if isOwner(userId);
+      
+      // Allow authenticated users to query by email (for sharing)
+      allow list: if isSignedIn();
+      // Allow anyone to read basic user info (needed for sharing invitations)
+      allow get: if isSignedIn();
+      
+      // Profile subcollection
+      match /profile/data {
+        allow read, write: if isOwner(userId);
+      }
+      
+      // Products subcollection
+      match /products/{productId} {
+        // Owner ALWAYS has full access to their own products (highest priority)
+        allow read, write, list: if isOwner(userId);
+        
+        // Collaborators with shared access can also read and write (but only to shared lists, not their own)
+        allow read, write, list: if hasSharedAccess(userId);
+      }
+      
+      // Shopping trips subcollection
+      match /trips/{tripId} {
+        allow read, write: if isOwner(userId);
+      }
+      
+      // Sharing configuration
+      match /sharing/config {
+        // Only owner can read and write their sharing config
+        allow read, write: if isOwner(userId);
+      }
+    }
+    
+    // Shared access collection
+    match /sharedAccess/{userId}/lists/{ownerId} {
+      // Users can read their own shared access records
+      allow read: if isOwner(userId);
+      
+      // Owner can create shared access for collaborators
+      allow create: if isOwner(ownerId);
+      
+      // Both owner and collaborator can update (e.g., accepting invitation)
+      allow update: if isOwner(userId) || isOwner(ownerId);
+      
+      // Owner can delete shared access
+      allow delete: if isOwner(ownerId);
+    }
+  }
+}

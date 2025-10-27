@@ -1,5 +1,6 @@
 import { initializeApp, getApps, getApp } from 'firebase/app'
 import { getAuth } from 'firebase/auth'
+import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore'
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -14,7 +15,33 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp()
 
-// Initialize Firebase Auth
+// Initialize Firebase Services
 export const auth = getAuth(app)
+
+// Initialize Firestore with modern cache API (supports multiple tabs)
+export const db = typeof window !== 'undefined' && getApps().length === 1
+  ? initializeFirestore(app, {
+      localCache: persistentLocalCache({
+        tabManager: persistentMultipleTabManager()
+      })
+    })
+  : getFirestore(app)
+
+// Note: Firebase Storage disabled for now - will be enabled later
+
+// Helper function to get user's products collection reference
+export const getUserProductsCollection = (userId: string) => {
+  return `users/${userId}/products`
+}
+
+// Helper function to get user's shopping trips collection reference
+export const getUserTripsCollection = (userId: string) => {
+  return `users/${userId}/shoppingTrips`
+}
+
+// Helper function to get user's profile document path segments
+export const getUserProfilePath = (userId: string) => {
+  return ['users', userId, 'profile'] as const
+}
 
 export default app

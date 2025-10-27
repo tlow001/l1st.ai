@@ -8,8 +8,28 @@ import {
   User as FirebaseUser,
   updateProfile,
 } from 'firebase/auth'
-import { auth } from './firebase'
+import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore'
+import { auth, db } from './firebase'
 import type { User } from '@/types'
+
+/**
+ * Create or update user document in Firestore
+ */
+async function ensureUserDocument(firebaseUser: FirebaseUser): Promise<void> {
+  const userRef = doc(db, 'users', firebaseUser.uid)
+  const userDoc = await getDoc(userRef)
+  
+  if (!userDoc.exists()) {
+    // Create user document if it doesn't exist
+    await setDoc(userRef, {
+      email: firebaseUser.email,
+      name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
+      displayName: firebaseUser.displayName,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    })
+  }
+}
 
 /**
  * Convert Firebase User to App User type
@@ -30,6 +50,10 @@ export async function signInWithGoogle(): Promise<User | null> {
   try {
     const provider = new GoogleAuthProvider()
     const result = await signInWithPopup(auth, provider)
+    
+    // Ensure user document exists in Firestore
+    await ensureUserDocument(result.user)
+    
     return firebaseUserToAppUser(result.user)
   } catch (error: any) {
     console.error('Error signing in with Google:', error)
@@ -53,6 +77,9 @@ export async function registerWithEmail(
       await updateProfile(userCredential.user, {
         displayName: name,
       })
+      
+      // Create user document in Firestore
+      await ensureUserDocument(userCredential.user)
     }
     
     return firebaseUserToAppUser(userCredential.user)
@@ -81,6 +108,10 @@ export async function signInWithEmail(
 ): Promise<User | null> {
   try {
     const userCredential = await signInWithEmailAndPassword(auth, email, password)
+    
+    // Ensure user document exists in Firestore (in case of old users)
+    await ensureUserDocument(userCredential.user)
+    
     return firebaseUserToAppUser(userCredential.user)
   } catch (error: any) {
     console.error('Error signing in with email:', error)
